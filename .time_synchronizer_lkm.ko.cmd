@@ -1,0 +1,1 @@
+cmd_/home/nvidia/lkm/time_synchronizer/time_synchronizer_lkm.ko := ld -EL -r  -T ./scripts/module-common.lds --build-id  -o /home/nvidia/lkm/time_synchronizer/time_synchronizer_lkm.ko /home/nvidia/lkm/time_synchronizer/time_synchronizer_lkm.o /home/nvidia/lkm/time_synchronizer/time_synchronizer_lkm.mod.o

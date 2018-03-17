@@ -90,8 +90,11 @@ static ssize_t timeInterrupt_show(struct kobject *kobj, struct kobj_attribute *a
  */
 static ssize_t timeInterrupt_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
 {
-   sscanf(buf, "%du", &timeInterrupt);
-   return count;
+	long int time_interrupt;
+	sscanf(buf, "%lu", &time_interrupt);
+	timeInterrupt.tv_sec = time_interrupt / (10^9);
+	timeInterrupt.tv_nsec = time_interrupt % (10^9);
+	return count;
 }
 
 /** @brief Displays if the LED is on or off, remove in release */
@@ -158,7 +161,7 @@ static struct kobj_attribute diff_attr  = __ATTR_RO(diffTime);  ///< the differe
 static struct attribute *ts_attrs[] = 
 {
       &count_attr.attr,                  ///< The number of interrupts
-      &time_int_attr,						 ///< The time interrupt happens
+      &time_int_attr.attr,						 ///< The time interrupt happens
       &debounce_attr.attr,               ///< Is the debounce state true or false
       &ledon_attr.attr,                  ///< Is the LED on or off? remove in release
       &time_attr.attr,                   ///< Time of the last interrupt in HH:MM:SS:NNNNNNNNN, remove in release
@@ -238,7 +241,7 @@ static int __init ts_init(void){
    }
    // This next call requests an interrupt line
    result = request_irq(irqNumber,             // The interrupt number requested
-                        (irq_handler_t) ts_gpio_irq_handler, // The pointer to the handler function below
+                        (irq_handler_t) tsgpio_irq_handler, // The pointer to the handler function below
                         IRQflags,              // Use the custom kernel param to set interrupt type
                         "time_synchronizer_handler",  // Used in /proc/interrupts to identify the owner
                         NULL);                 // The *dev_id for shared interrupt lines, NULL is okay
@@ -275,13 +278,15 @@ static irq_handler_t tsgpio_irq_handler(unsigned int irq, void *dev_id, struct p
 {
    ledOn = !ledOn;                      // Invert the LED state on each time synchronizer interrupt, remove in release
    gpio_set_value(gpioLED, ledOn);      // Set the physical LED accordingly, remove in release
+   printk(KERN_INFO "ledOn is: %d.\n", ledOn);
    getnstimeofday(&timeInterrupt);         // Get the current time as ts_current
+   printk(KERN_INFO "Interrupt time: %lu.%.9lu \n", timeInterrupt.tv_sec, timeInterrupt.tv_nsec );
    ts_current = timeInterrupt; // remove in release
    ts_diff = timespec_sub(ts_current, ts_last);   // Determine the time difference between last 2 interrupts, remove in release
    ts_last = ts_current;                // Store the current time as the last time ts_last, remove in release
    printk(KERN_INFO "Time Synchronizer: The time synchronizer state is currently: %d\n", gpio_get_value(gpioTS)); // remove in release
    numberInterrupts++;                     // Global counter, will be outputted when the module is unloaded
-   printk(KERN_INFO "Interrupts happens %d times\n", nuberInterrupts); // remove in release
+   printk(KERN_INFO "Interrupts happens %d times\n", numberInterrupts); // remove in release
    return (irq_handler_t) IRQ_HANDLED;  // Announce that the IRQ has been handled correctly
 }
 
