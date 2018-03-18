@@ -1,0 +1,5 @@
+#!/bin/sh
+#
+
+# Remove the kernel modules before shutdown
+sudo rmmod time_synchronizer_lkm

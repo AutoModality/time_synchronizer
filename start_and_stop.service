@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Scripts at Start and Stop
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStart=/home/nvidia/.startup_commands
+ExecStop=/home/nvidia/.shutdown_commands
+
+[Install]
+WantedBy=multi-user.target
+
+
