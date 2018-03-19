@@ -30,11 +30,18 @@ static unsigned int gpioTS = 388;       ///< Default GPIO is 388
 module_param(gpioTS, uint, S_IRUGO);    ///< Param desc. S_IRUGO can be read/not changed
 MODULE_PARM_DESC(gpioTS, "Time Synchronizer GPIO number (default=388)");  ///< parameter description
 
+// This is used for test with oscilloscope, remove in the release
+static unsigned int gpioLED = 389;           ///< Default GPIO is 389
+module_param(gpioLED, uint, S_IRUGO);       ///< Param desc. S_IRUGO can be read/not changed
+MODULE_PARM_DESC(gpioLED, " GPIO LED number (default=389)");         ///< parameter description
+
 static char   gpioName[8] = "gpioXXX";      ///< Null terminated default string -- just in case
 static int    irqNumber;                    ///< Used to share the IRQ number within this file
 static int    numberInterrupts = 0;            ///< For information, store the number of interrupts
 static bool   newInterrupt = 0;				///< Flag for new interrupt, set in irq handler, clear by application when reading interrupt time.
+static bool   ledOn = 0;                    ///< Is the LED on or off? Used to invert its state (off by default), remove in release
 static bool   isDebounce = 0;               ///< Use to store the debounce state (off by default)
+static struct timespec ts_last, ts_current, ts_diff;  ///< remove in release
 static struct timespec timeInterrupt; ///< timespecs from linux/time.h (has nano precision)
 
 /// Function prototype for the custom IRQ handler function -- see below for the implementation
@@ -106,6 +113,25 @@ static ssize_t newInterrupt_store(struct kobject *kobj, struct kobj_attribute *a
    return count;
 }
 
+/** @brief Displays if the LED is on or off, remove in release */
+static ssize_t ledOn_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+   return sprintf(buf, "%d\n", ledOn);
+}
+
+/** @brief Displays the last interrupt time -- manually output the date (no localization), remove in release */
+static ssize_t lastTime_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+   return sprintf(buf, "%.2lu:%.2lu:%.2lu:%.9lu \n", (ts_last.tv_sec/3600)%24,
+          (ts_last.tv_sec/60) % 60, ts_last.tv_sec % 60, ts_last.tv_nsec );
+}
+
+/** @brief Display the time difference in the form secs.nanosecs to 9 places, remove in release */
+static ssize_t diffTime_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+   return sprintf(buf, "%lu.%.9lu\n", ts_diff.tv_sec, ts_diff.tv_nsec);
+}
+
 /** @brief Displays if time synchronize debouncing is on or off */
 static ssize_t isDebounce_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
 {
@@ -142,6 +168,9 @@ static struct kobj_attribute new_int_attr = __ATTR(newInterrupt, 0664, newInterr
  *  function is called _show, but it must be present. __ATTR_WO can be  used for a write-only
  *  attribute but only in Linux 3.11.x on.
  */
+static struct kobj_attribute ledon_attr = __ATTR_RO(ledOn);     ///< the ledon kobject attr, remove in release
+static struct kobj_attribute time_attr  = __ATTR_RO(lastTime);  ///< the last interrupt time kobject attr, remove in release
+static struct kobj_attribute diff_attr  = __ATTR_RO(diffTime);  ///< the difference in time attr, remove in release
 
 /**  The ts_attrs[] is an array of attributes that is used to create the attribute group below.
  *  The attr property of the kobj_attribute is used to extract the attribute struct
@@ -152,6 +181,9 @@ static struct attribute *ts_attrs[] =
       &time_int_attr.attr,						 ///< The time interrupt happens
       &debounce_attr.attr,               ///< Is the debounce state true or false
       &new_int_attr.attr,				 ///< Is there new interrupt
+      &ledon_attr.attr,                  ///< Is the LED on or off? remove in release
+      &time_attr.attr,                   ///< Time of the last interrupt in HH:MM:SS:NNNNNNNNN, remove in release
+      &diff_attr.attr,                   ///< The difference in time between the last two interrupts, remove in release
       NULL,
 };
 
@@ -196,9 +228,18 @@ static int __init ts_init(void){
       kobject_put(ts_kobj);                          // clean up -- remove the kobject sysfs entry
       return result;
    }
+   getnstimeofday(&ts_last);                          // set the last time to be the current time, remove in release
+   ts_diff = timespec_sub(ts_last, ts_last);          // set the initial time difference to be 0, remove in release
    timeInterrupt.tv_sec = 0.0;
    timeInterrupt.tv_nsec = 0.0;
 
+   // Going to set up the LED. It is a GPIO in output mode and will be on by default, remove in release
+   ledOn = true;
+   gpio_request(gpioLED, "sysfs");          // gpioLED is hardcoded to 49, request it
+   gpio_direction_output(gpioLED, ledOn);   // Set the gpio to be in output mode and on
+// gpio_set_value(gpioLED, ledOn);          // Not required as set by line above (here for reference)
+   gpio_export(gpioLED, false);             // Causes gpio49 to appear in /sys/class/gpio
+			                    // the bool argument prevents the direction from being changed
    gpio_request(gpioTS, "sysfs");       // Set up the gpioTS
    gpio_direction_input(gpioTS);        // Set the time synchronizer GPIO to be an input
    gpio_set_debounce(gpioTS, DEBOUNCE_TIME); // Debounce the time synchronizer with a delay of 200ms
@@ -232,8 +273,11 @@ static int __init ts_init(void){
 static void __exit ts_exit(void){
    printk(KERN_INFO "Interrupt happens %d times\n", numberInterrupts);
    kobject_put(ts_kobj);                   // clean up -- remove the kobject sysfs entry
+   gpio_set_value(gpioLED, 0);              // Turn the LED off, makes it clear the device was unloaded, remove in release
+   gpio_unexport(gpioLED);                  // Unexport the LED GPIO, remove in release
    free_irq(irqNumber, NULL);               // Free the IRQ number, no *dev_id required in this case
    gpio_unexport(gpioTS);                  // Unexport the lkm time synchronizer GPIO
+   gpio_free(gpioLED);                      // Free the LED GPIO, remove in release
    gpio_free(gpioTS);                   // Free the lkm time synchronizer GPIO
    printk(KERN_INFO "Goodbye from the time synchronizer LKM!\n");
 }
@@ -250,12 +294,18 @@ static void __exit ts_exit(void){
  */
 static irq_handler_t tsgpio_irq_handler(unsigned int irq, void *dev_id, struct pt_regs *regs)
 {
+   ledOn = !ledOn;                      // Invert the LED state on each time synchronizer interrupt, remove in release
+   gpio_set_value(gpioLED, ledOn);      // Set the physical LED accordingly, remove in release
+   printk(KERN_INFO "ledOn is: %d.\n", ledOn);
    newInterrupt = 1;					// There is new interrupt
    getnstimeofday(&timeInterrupt);         // Get the current time as ts_current
-   //printk(KERN_INFO "Interrupt time: %lu.%.9lu \n", timeInterrupt.tv_sec, timeInterrupt.tv_nsec );
-   //printk(KERN_INFO "Time Synchronizer: The time synchronizer state is currently: %d\n", gpio_get_value(gpioTS));
+   printk(KERN_INFO "Interrupt time: %lu.%.9lu \n", timeInterrupt.tv_sec, timeInterrupt.tv_nsec );
+   ts_current = timeInterrupt; // remove in release
+   ts_diff = timespec_sub(ts_current, ts_last);   // Determine the time difference between last 2 interrupts, remove in release
+   ts_last = ts_current;                // Store the current time as the last time ts_last, remove in release
+   printk(KERN_INFO "Time Synchronizer: The time synchronizer state is currently: %d\n", gpio_get_value(gpioTS)); // remove in release
    numberInterrupts++;                     // Global counter, will be outputted when the module is unloaded
-   //printk(KERN_INFO "Interrupts happens %d times\n", numberInterrupts); // remove in release
+   printk(KERN_INFO "Interrupts happens %d times\n", numberInterrupts); // remove in release
    return (irq_handler_t) IRQ_HANDLED;  // Announce that the IRQ has been handled correctly
 }
 
