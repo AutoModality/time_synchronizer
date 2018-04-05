@@ -17,11 +17,15 @@ $sudo su
 $make
 
 Do sudo without password:
+
 $sudo visudo
-Add this line at the end (change “jerome” to your username):
+
+Add this line at the end:
 
 nvidia ALL=(ALL) NOPASSWD: ALL
+
 Insert LKM at bootup and remove it at shutdown or reboot
+
 Create file '.startup.commands' in the /home/nvidia:
 
 #!/bin/sh
@@ -42,6 +46,7 @@ Create file '.shutdown.commands' in /home/nvidia folder:
  
 # Remove the kernel modules before shutdown
 sudo rmmod time_synchronizer_lkm
+
 With this script, at shutdown period the LKM will be removed.
 
 Creat file 'start_and_stop.service' in /etc/systemd/system/:
@@ -63,6 +68,7 @@ Enable the above serive:
 $systemctl enable start_and_stop
 
 Test the time synchronizer in ROS on developer kit
+
 Wire the hardware as in above figure.
 
 Run the following command:
