@@ -2,12 +2,12 @@
 
 An external interrupt is generated on GPIO of TX2 to make a time synchronizer for hardware, like sensors. Pin GPIO8_ALS_PROX_INT of TX2 is used for this feature. In Linux Kernel this pin is mapped to gpio388 (http://www.jetsonhacks.com/nvidia-jetson-tx2-j21-header-pinout/). On the developer kit this pin is breakout to J21 pin 37.
 
-##Test on Developer Kit
+## Test on Developer Kit
 
-###Testbench for the test of the time synchronizer
+### Testbench for the test of the time synchronizer
 ![Optional Text](../master/photo_interrupter_2_TX2.jpg)
 
-###Build loadable kernel module (LKM) for the time synchronizer
+### Build loadable kernel module (LKM) for the time synchronizer
 ```
 $sudo mkdir ~/lkm/time_synchronizer
 ```
@@ -26,7 +26,7 @@ Add this line at the end:
 nvidia ALL=(ALL) NOPASSWD: ALL
 ```
 
-###Insert LKM at bootup and remove it at shutdown or reboot
+### Insert LKM at bootup and remove it at shutdown or reboot
 
 Create file '.startup.commands' in the /home/nvidia:
 ```
@@ -50,10 +50,11 @@ Create file '.shutdown.commands' in /home/nvidia folder:
 # Remove the kernel modules before shutdown
 sudo rmmod time_synchronizer_lkm
 ```
+
 With this script, at shutdown period the LKM will be removed.
 
 Creat file 'start_and_stop.service' in /etc/systemd/system/:
-````
+```
 [Unit]
 Description=Run Scripts at Start and Stop
  
@@ -66,12 +67,13 @@ ExecStop=/home/nvidia/.shutdown_commands
 [Install]
 WantedBy=multi-user.target
 ```
+
 Enable the above serive:
 ```
 $systemctl enable start_and_stop
 ```
-###Test the time synchronizer in ROS on developer kit
 
+### Test the time synchronizer in ROS on developer kit
 Wire the hardware as in above figure.
 
 Run the following command:
