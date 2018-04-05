@@ -1,12 +1,10 @@
 /**
- * @file   testebbchar.c
- * @author Derek Molloy
- * @date   7 April 2015
+ * @file   testsysfs.c
+ * @author Tao Wang
+ * @date   March 18, 2018
  * @version 0.1
- * @brief  A Linux user space program that communicates with the ebbchar.c LKM. It passes a
- * string to the LKM and reads the response from the LKM. For this example to work the device
- * must be called /dev/ebbchar.
- * @see http://www.derekmolloy.ie/ for a full description and follow-up descriptions.
+ * @brief  A Linux user space program that communicates with the time_synchronizer_lkm.c LKM. It passes a
+ * string to the LKM and reads the response from the LKM. 
 */
 #include<stdio.h>
 #include<stdlib.h>
@@ -27,7 +25,7 @@ int main()
 	int gpio = 388;
 	char c;
 
-	sprintf(gpioPath, "/sys/ebb/gpio%d/lastTime", gpio);
+	sprintf(gpioPath, "/sys/ts_lkm/gpio%d/lastTime", gpio);
 
 	printf("Starting device test code example...\n");
 
