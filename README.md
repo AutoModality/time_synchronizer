@@ -68,7 +68,7 @@ ExecStop=/home/nvidia/.shutdown_commands
 WantedBy=multi-user.target
 ```
 
-Enable the above serive:
+Enable the above service:
 ```
 $systemctl enable start_and_stop
 ```
