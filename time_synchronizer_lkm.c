@@ -24,7 +24,7 @@ MODULE_VERSION("0.1");
 
 static bool isRising = 1;                   ///< Rising edge is the default IRQ property
 module_param(isRising, bool, S_IRUGO);      ///< Param desc. S_IRUGO can be read/not changed
-MODULE_PARM_DESC(isRising, "Falling edge = 0 (default), rising edge = 1");  ///< parameter description
+MODULE_PARM_DESC(isRising, "Rising edge = 1 (default), falling edge = 0");  ///< parameter description
 
 static unsigned int gpioTS = 388;       ///< Default GPIO is 388
 module_param(gpioTS, uint, S_IRUGO);    ///< Param desc. S_IRUGO can be read/not changed
@@ -176,7 +176,7 @@ static struct kobject *ts_kobj;
  */
 static int __init ts_init(void){
    int result = 0;
-   unsigned long IRQflags = IRQF_TRIGGER_FALLING;      // The default is a falling-edge interrupt
+   unsigned long IRQflags = IRQF_TRIGGER_RISING;      // The default is a rising-edge interrupt
 
    printk(KERN_INFO "Time Synchronizer: Initializing the Time Synchronizer LKM\n");
    sprintf(gpioName, "gpio%d", gpioTS);           // Create the gpio115 name for /sys/ts_lkm/gpio115
