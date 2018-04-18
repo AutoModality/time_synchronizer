@@ -176,7 +176,7 @@ static struct kobject *ts_kobj;
  */
 static int __init ts_init(void){
    int result = 0;
-   unsigned long IRQflags = IRQF_TRIGGER_RISING;      // The default is a rising-edge interrupt
+   int IRQflags = IRQF_TRIGGER_RISING;      // The default is a rising-edge interrupt
 
    printk(KERN_INFO "Time Synchronizer: Initializing the Time Synchronizer LKM\n");
    sprintf(gpioName, "gpio%d", gpioTS);           // Create the gpio115 name for /sys/ts_lkm/gpio115
@@ -216,6 +216,10 @@ static int __init ts_init(void){
    {                           // If the kernel parameter isRising=0 is supplied
       IRQflags = IRQF_TRIGGER_FALLING;      // Set the interrupt to be on the falling edge
    }
+   printk(KERN_INFO "isRising: %d \n", isRising );   
+   printk(KERN_INFO "IRQF_TRIGGER_RISING: %d \n", IRQF_TRIGGER_RISING );
+   printk(KERN_INFO "IRQF_TRIGGER_FALLING: %d \n", IRQF_TRIGGER_FALLING );
+   printk(KERN_INFO "IRQflags: %d \n", IRQflags );
    // This next call requests an interrupt line
    result = request_irq(irqNumber,             // The interrupt number requested
                         (irq_handler_t) tsgpio_irq_handler, // The pointer to the handler function below
