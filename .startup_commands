@@ -6,4 +6,5 @@ sudo insmod /home/nvidia/lkm/time_synchronizer/time_synchronizer_lkm.ko
 sudo chmod 0666 /sys/ts_lkm/gpio388/timeInterrupt
 sudo chmod 0666 /sys/ts_lkm/gpio388/numberInterrupts
 sudo chmod 0666 /sys/ts_lkm/gpio388/isDebounce
+sudo chmod 0666 /sys/ts_lkm/gpio388/newInterrupt
 
