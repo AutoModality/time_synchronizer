@@ -26,7 +26,7 @@ static bool isRising = 1;                   ///< Rising edge is the default IRQ 
 module_param(isRising, bool, S_IRUGO);      ///< Param desc. S_IRUGO can be read/not changed
 MODULE_PARM_DESC(isRising, "Rising edge = 1 (default), falling edge = 0");  ///< parameter description
 
-static unsigned int gpioTS = 388;       ///< Default GPIO is 388
+static unsigned int gpioTS = 422;       ///< Default GPIO is 388
 module_param(gpioTS, uint, S_IRUGO);    ///< Param desc. S_IRUGO can be read/not changed
 MODULE_PARM_DESC(gpioTS, "Time Synchronizer GPIO number (default=388)");  ///< parameter description
 
